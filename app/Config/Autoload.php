@@ -9,11 +9,12 @@ require_once SYSTEMPATH . 'Config/AutoloadConfig.php';
  * This file defines the namespaces and class maps so the Autoloader
  * can find the files as needed.
  */
-class Autoload extends \CodeIgniter\Config\AutoloadConfig
-{
-	public $psr4 = [];
-
-	public $classmap = [];
+class Autoload extends \CodeIgniter\Config\AutoloadConfig {
+	protected $_psr4 = [
+     	'Itpdx'		  => APPPATH . DIRECTORY_SEPARATOR . 'Local/itpdx',
+		'Eartwist'	  => APPPATH . DIRECTORY_SEPARATOR . 'Local/eartwist'
+	];
+	protected $_classmap = [];
 
 	//--------------------------------------------------------------------
 
@@ -77,8 +78,8 @@ class Autoload extends \CodeIgniter\Config\AutoloadConfig
 		// Do Not Edit Below This Line
 		//--------------------------------------------------------------------
 
-		$this->psr4     = array_merge($this->psr4, $psr4);
-		$this->classmap = array_merge($this->classmap, $classmap);
+		$this->psr4     = array_merge($this->psr4, $psr4, $this->_psr4);
+		$this->classmap = array_merge($this->classmap, $classmap, $this->_classmap);
 
 		unset($psr4, $classmap);
 	}
