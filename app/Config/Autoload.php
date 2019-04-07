@@ -10,10 +10,7 @@ require_once SYSTEMPATH . 'Config/AutoloadConfig.php';
  * can find the files as needed.
  */
 class Autoload extends \CodeIgniter\Config\AutoloadConfig {
-	protected $_psr4 = [
-     	'Itpdx'		  => APPPATH . DIRECTORY_SEPARATOR . 'Local/itpdx',
-		'Eartwist'	  => APPPATH . DIRECTORY_SEPARATOR . 'Local/eartwist'
-	];
+	protected $_psr4 = [];
 	protected $_classmap = [];
 
 	//--------------------------------------------------------------------
