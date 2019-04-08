@@ -224,7 +224,24 @@ class FileLocator
 			if (is_file($namespace['path'] . $path))
 			{
 				$foundPaths[] = $namespace['path'] . $path;
+				continue;
 			}
+			// RICKFIX:20190407 Find module specific files
+			// 	the documentation shows a folder layout of [company]/Module but the original code
+			//	only searches the [company] folder. We can add a namespace for each module but that
+			//	can get messy as the company level namespace still needs to exist
+			$module_paths = array_filter( glob( $namespace['path'] . '*' ), 'is_dir' );
+			foreach ($module_paths as $module_path)
+			{
+				$module = trim(basename($module_path), DIRECTORY_SEPARATOR);
+                $module_file =  rtrim($namespace['path'], DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $path;
+                if (is_file($module_file))
+                {
+					$foundPaths[] = $module_file;
+                }
+			}
+
+
 		}
 
 		// Remove any duplicates
