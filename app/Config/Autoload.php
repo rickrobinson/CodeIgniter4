@@ -18,11 +18,7 @@ class Autoload extends \CodeIgniter\Config\AutoloadConfig {
 	*	add the protected variables to the array_merge calls in local constructor
 	*
 	*/
-	protected $_psr4 = [
-	    'Itpdx'		  => ROOTPATH . 'itpdx',
-		'Eartwist'	  => ROOTPATH . 'eartwist',
-		'Core'	  	  => ROOTPATH . 'core'
-	];
+	protected $_psr4 = [];
 	protected $_classmap = [];
 
 	//--------------------------------------------------------------------
