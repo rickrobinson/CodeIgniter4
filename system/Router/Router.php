@@ -474,8 +474,9 @@ class Router implements RouterInterface
 				elseif (strpos($val, '$') !== false && strpos($key, '(') !== false)
 				{
 					$val = preg_replace('#^' . $key . '$#', $val, $uri);
-				}
-				elseif (strpos($val, '/') !== false)
+				} // elseif (strpos($val, '/') !== false)
+				// RICKFIX:20190407 move to if as this needs to be done for proper class conversion on all routes
+				if (strpos($val, '/') !== false)
 				{
 					[
 						$controller,
