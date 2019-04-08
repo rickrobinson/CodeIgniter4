@@ -19,7 +19,7 @@ class Autoload extends \CodeIgniter\Config\AutoloadConfig {
 	*
 	*/
 	protected $_psr4 = [
-     	'Itpdx'		  => ROOTPATH . 'itpdx',
+	    'Itpdx'		  => ROOTPATH . 'itpdx',
 		'Eartwist'	  => ROOTPATH . 'eartwist',
 		'Core'	  	  => ROOTPATH . 'core'
 	];
