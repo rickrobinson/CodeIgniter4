@@ -226,7 +226,7 @@ class FileLocator
 				$foundPaths[] = $namespace['path'] . $path;
 				continue;
 			}
-			// RICKFIX:20190407 Find module specific files
+			// RICKFIX:20190407 Find module specific Routes.php files
 			// 	the documentation shows a folder layout of [company]/Module but the original code
 			//	only searches the [company] folder. We can add a namespace for each module but that
 			//	can get messy as the company level namespace still needs to exist
