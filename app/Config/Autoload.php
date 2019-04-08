@@ -10,7 +10,19 @@ require_once SYSTEMPATH . 'Config/AutoloadConfig.php';
  * can find the files as needed.
  */
 class Autoload extends \CodeIgniter\Config\AutoloadConfig {
-	protected $_psr4 = [];
+	/**
+	* RICKFIX:20190406
+	*   parent::__construct call is overwriting local class variables $psr4 and $classmap
+	* 	remove and replace with protected variables $_psr4 and $_classmap
+	*		use these to set namespaces
+	*	add the protected variables to the array_merge calls in local constructor
+	*
+	*/
+	protected $_psr4 = [
+     	'Itpdx'		  => ROOTPATH . 'itpdx',
+		'Eartwist'	  => ROOTPATH . 'eartwist',
+		'Core'	  	  => ROOTPATH . 'core'
+	];
 	protected $_classmap = [];
 
 	//--------------------------------------------------------------------
