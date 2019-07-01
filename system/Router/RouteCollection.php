@@ -33,12 +33,14 @@
  * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
- * @since      Version 3.0.0
+ * @since      Version 4.0.0
  * @filesource
  */
 
 namespace CodeIgniter\Router;
 
+use CodeIgniter\HTTP\Request;
+use Config\Services;
 use CodeIgniter\Autoloader\FileLocator;
 use CodeIgniter\Router\Exceptions\RouterException;
 
@@ -210,11 +212,15 @@ class RouteCollection implements RouteCollectionInterface
 	protected $didDiscover = false;
 
 	/**
+	 * Handle to the file locator to use.
+	 *
 	 * @var \CodeIgniter\Autoloader\FileLocator
 	 */
 	protected $fileLocator;
 
 	/**
+	 * Handle to the modules config.
+	 *
 	 * @var \Config\Modules
 	 */
 	protected $moduleConfig;
@@ -229,11 +235,7 @@ class RouteCollection implements RouteCollectionInterface
 	 */
 	public function __construct(FileLocator $locator, $moduleConfig)
 	{
-		// Get HTTP verb
-		$this->HTTPVerb = strtolower($_SERVER['REQUEST_METHOD'] ?? 'cli');
-
-		$this->fileLocator = $locator;
-
+		$this->fileLocator  = $locator;
 		$this->moduleConfig = $moduleConfig;
 	}
 
@@ -511,7 +513,7 @@ class RouteCollection implements RouteCollectionInterface
 	/**
 	 * Returns the raw array of available routes.
 	 *
-	 * @param null $verb
+	 * @param mixed $verb
 	 *
 	 * @return array
 	 */
@@ -621,7 +623,7 @@ class RouteCollection implements RouteCollectionInterface
 	 *
 	 * @param string       $from
 	 * @param array|string $to
-	 * @param $options
+	 * @param array        $options
 	 *
 	 * @return RouteCollectionInterface
 	 */
@@ -724,7 +726,7 @@ class RouteCollection implements RouteCollectionInterface
 	 *
 	 * @return void
 	 */
-	public function group($name, ...$params)
+	public function group(string $name, ...$params)
 	{
 		$oldGroup   = $this->group;
 		$oldOptions = $this->currentOptions;
@@ -1112,6 +1114,12 @@ class RouteCollection implements RouteCollectionInterface
 				$from = key($route['route']);
 				$to   = $route['route'][$from];
 
+				// ignore closures
+				if (! is_string($to))
+				{
+					continue;
+				}
+
 				// Lose any namespace slash at beginning of strings
 				// to ensure more consistent match.
 				$to     = ltrim($to, '\\');
@@ -1432,4 +1440,18 @@ class RouteCollection implements RouteCollectionInterface
 	}
 
 	//--------------------------------------------------------------------
+
+	/**
+	 * Reset the routes, so that a FeatureTestCase can provide the
+	 * explicit ones needed for it.
+	 */
+	public function resetRoutes()
+	{
+		$this->routes = ['*' => []];
+		foreach ($this->defaultHTTPMethods as $verb)
+		{
+			$this->routes[$verb] = [];
+		}
+	}
+
 }

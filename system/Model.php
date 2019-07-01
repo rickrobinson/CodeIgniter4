@@ -32,12 +32,13 @@
  * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
- * @since      Version 3.0.0
+ * @since      Version 4.0.0
  * @filesource
  */
 
 namespace CodeIgniter;
 
+use Closure;
 use CodeIgniter\Exceptions\ModelException;
 use Config\Database;
 use CodeIgniter\I18n\Time;
@@ -47,6 +48,9 @@ use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\Database\ConnectionInterface;
 use CodeIgniter\Validation\ValidationInterface;
 use CodeIgniter\Database\Exceptions\DataException;
+use ReflectionClass;
+use ReflectionProperty;
+use stdClass;
 
 /**
  * Class Model
@@ -116,7 +120,7 @@ class Model
 
 	/**
 	 * If this model should use "softDeletes" and
-	 * simply set a flag when rows are deleted, or
+	 * simply set a date when rows are deleted, or
 	 * do hard deletes.
 	 *
 	 * @var boolean
@@ -178,7 +182,7 @@ class Model
 	 *
 	 * @var string
 	 */
-	protected $deletedField = 'deleted';
+	protected $deletedField = 'deleted_at';
 
 	/**
 	 * Used by asArray and asObject to provide
@@ -242,23 +246,57 @@ class Model
 	 */
 	protected $validation;
 
-	/**
+	/*
 	 * Callbacks. Each array should contain the method
 	 * names (within the model) that should be called
 	 * when those events are triggered. With the exception
 	 * of 'afterFind', all methods are passed the same
 	 * items that are given to the update/insert method.
 	 * 'afterFind' will also include the results that were found.
+	 */
+
+	/**
+	 * Callbacks for beforeInsert
 	 *
-	 * @var array
+	 * @var type
 	 */
 	protected $beforeInsert = [];
-	protected $afterInsert  = [];
+	/**
+	 * Callbacks for afterInsert
+	 *
+	 * @var type
+	 */
+	protected $afterInsert = [];
+	/**
+	 * Callbacks for beforeUpdate
+	 *
+	 * @var type
+	 */
 	protected $beforeUpdate = [];
-	protected $afterUpdate  = [];
-	protected $afterFind    = [];
+	/**
+	 * Callbacks for afterUpdate
+	 *
+	 * @var type
+	 */
+	protected $afterUpdate = [];
+	/**
+	 * Callbacks for afterFind
+	 *
+	 * @var type
+	 */
+	protected $afterFind = [];
+	/**
+	 * Callbacks for beforeDelete
+	 *
+	 * @var type
+	 */
 	protected $beforeDelete = [];
-	protected $afterDelete  = [];
+	/**
+	 * Callbacks for afterDelete
+	 *
+	 * @var type
+	 */
+	protected $afterDelete = [];
 
 	/**
 	 * Holds information passed in via 'set'
@@ -318,7 +356,7 @@ class Model
 
 		if ($this->tempUseSoftDeletes === true)
 		{
-			$builder->where($this->deletedField, 0);
+			$builder->where($this->table . '.' . $this->deletedField, null);
 		}
 
 		if (is_array($id))
@@ -354,10 +392,9 @@ class Model
 	/**
 	 * Fetches the column of database from $this->table
 	 *
-	 * @param string        $column_name Column name
+	 * @param string $columnName
 	 *
 	 * @return array|null   The resulting row of data, or null if no data found.
-	 *
 	 * @throws \CodeIgniter\Database\Exceptions\DataException
 	 */
 	public function findColumn(string $columnName)
@@ -368,10 +405,10 @@ class Model
 		}
 
 		$resultSet = $this->select($columnName)
-		                  ->asArray()
-		                  ->find();
+						  ->asArray()
+						  ->find();
 
-		return (!empty($resultSet)) ? array_column($resultSet, $columnName) : null;
+		return (! empty($resultSet)) ? array_column($resultSet, $columnName) : null;
 	}
 
 	//--------------------------------------------------------------------
@@ -391,7 +428,7 @@ class Model
 
 		if ($this->tempUseSoftDeletes === true)
 		{
-			$builder->where($this->deletedField, 0);
+			$builder->where($this->table . '.' . $this->deletedField, null);
 		}
 
 		$row = $builder->limit($limit, $offset)
@@ -421,7 +458,7 @@ class Model
 
 		if ($this->tempUseSoftDeletes === true)
 		{
-			$builder->where($this->deletedField, 0);
+			$builder->where($this->table . '.' . $this->deletedField, null);
 		}
 
 		// Some databases, like PostgreSQL, need order
@@ -536,8 +573,8 @@ class Model
 		}
 		else
 		{
-			$mirror = new \ReflectionClass($data);
-			$props  = $mirror->getProperties(\ReflectionProperty::IS_PUBLIC | \ReflectionProperty::IS_PROTECTED);
+			$mirror = new ReflectionClass($data);
+			$props  = $mirror->getProperties(ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED);
 
 			$properties = [];
 
@@ -619,10 +656,15 @@ class Model
 			$this->tempData = [];
 		}
 
+		if (empty($data))
+		{
+			throw DataException::forEmptyDataset('insert');
+		}
+
 		// If $data is using a custom class with public or protected
 		// properties representing the table elements, we need to grab
 		// them as an array.
-		if (is_object($data) && ! $data instanceof \stdClass)
+		if (is_object($data) && ! $data instanceof stdClass)
 		{
 			$data = static::classToArray($data, $this->primaryKey, $this->dateFormat, false);
 		}
@@ -668,25 +710,24 @@ class Model
 
 		$data = $this->trigger('beforeInsert', ['data' => $data]);
 
-		if (empty($data))
-		{
-			throw DataException::forEmptyDataset('insert');
-		}
-
 		// Must use the set() method to ensure objects get converted to arrays
 		$result = $this->builder()
 				->set($data['data'], '', $escape)
 				->insert();
-
+		
+		// If insertion succeeded then save the insert ID
+		if ($result)
+		{
+			$this->insertID = $this->db->insertID();
+		}
+		
 		$this->trigger('afterInsert', ['data' => $originalData, 'result' => $result]);
 
-		// If insertion failed, get our of here
+		// If insertion failed, get out of here
 		if (! $result)
 		{
 			return $result;
 		}
-
-		$this->insertID = $this->db->insertID();
 
 		// otherwise return the insertID, if requested.
 		return $returnID ? $this->insertID : $result;
@@ -737,7 +778,7 @@ class Model
 	{
 		$escape = null;
 
-		if (is_numeric($id))
+		if (is_numeric($id) || is_string($id))
 		{
 			$id = [$id];
 		}
@@ -749,10 +790,15 @@ class Model
 			$this->tempData = [];
 		}
 
+		if (empty($data))
+		{
+			throw DataException::forEmptyDataset('update');
+		}
+
 		// If $data is using a custom class with public or protected
 		// properties representing the table elements, we need to grab
 		// them as an array.
-		if (is_object($data) && ! $data instanceof \stdClass)
+		if (is_object($data) && ! $data instanceof stdClass)
 		{
 			$data = static::classToArray($data, $this->primaryKey, $this->dateFormat);
 		}
@@ -789,11 +835,6 @@ class Model
 		}
 
 		$data = $this->trigger('beforeUpdate', ['id' => $id, 'data' => $data]);
-
-		if (empty($data))
-		{
-			throw DataException::forEmptyDataset('update');
-		}
 
 		$builder = $this->builder();
 
@@ -872,7 +913,7 @@ class Model
 
 		if ($this->useSoftDeletes && ! $purge)
 		{
-			$set[$this->deletedField] = 1;
+			$set[$this->deletedField] = $this->setDate();
 
 			if ($this->useTimestamps && ! empty($this->updatedField))
 			{
@@ -907,8 +948,8 @@ class Model
 		}
 
 		return $this->builder()
-						->where($this->deletedField, 1)
-						->delete();
+			    ->where($this->table . '.' . $this->deletedField . ' IS NOT NULL')
+			    ->delete();
 	}
 
 	//--------------------------------------------------------------------
@@ -941,7 +982,7 @@ class Model
 		$this->tempUseSoftDeletes = false;
 
 		$this->builder()
-				->where($this->deletedField, 1);
+		     ->where($this->table . '.' . $this->deletedField . ' IS NOT NULL');
 
 		return $this;
 	}
@@ -956,9 +997,9 @@ class Model
 	 * @param null    $data
 	 * @param boolean $returnSQL
 	 *
-	 * @return boolean TRUE on success, FALSE on failure
+	 * @return mixed
 	 */
-	public function replace($data = null, bool $returnSQL = false): bool
+	public function replace($data = null, bool $returnSQL = false)
 	{
 		// Validate data before saving.
 		if (! empty($data) && $this->skipValidation === false)
@@ -1019,7 +1060,7 @@ class Model
 	 *
 	 * @throws \CodeIgniter\Database\Exceptions\DataException
 	 */
-	public function chunk(int $size, \Closure $userFunc)
+	public function chunk(int $size, Closure $userFunc)
 	{
 		$total = $this->builder()
 				->countAllResults(false);
@@ -1112,6 +1153,7 @@ class Model
 	 * @param string $table
 	 *
 	 * @return BaseBuilder
+	 * @throws \CodeIgniter\Exceptions\ModelException;
 	 */
 	protected function builder(string $table = null)
 	{
@@ -1186,8 +1228,8 @@ class Model
 	/**
 	 * A utility function to allow child models to use the type of
 	 * date/time format that they prefer. This is primarily used for
-	 * setting created_at and updated_at values, but can be used
-	 * by inheriting classes.
+	 * setting created_at, updated_at and deleted_at values, but can be
+	 * used by inheriting classes.
 	 *
 	 * The available time formats are:
 	 *  - 'int'      - Stores the date as an integer timestamp
@@ -1197,6 +1239,7 @@ class Model
 	 * @param integer $userData An optional PHP timestamp to be converted.
 	 *
 	 * @return mixed
+	 * @throws \CodeIgniter\Exceptions\ModelException;
 	 */
 	protected function setDate(int $userData = null)
 	{
@@ -1213,6 +1256,8 @@ class Model
 			case 'date':
 				return date('Y-m-d', $currentDate);
 				break;
+			default:
+				throw ModelException::forNoDateFormat(get_class($this));
 		}
 	}
 
@@ -1317,7 +1362,7 @@ class Model
 	 * Validate the data against the validation rules (or the validation group)
 	 * specified in the class property, $validationRules.
 	 *
-	 * @param array $data
+	 * @param array|object $data
 	 *
 	 * @return boolean
 	 */
@@ -1503,7 +1548,7 @@ class Model
 	{
 		if ($this->tempUseSoftDeletes === true)
 		{
-			$this->builder()->where($this->deletedField, 0);
+			$this->builder()->where($this->table . '.' . $this->deletedField, null);
 		}
 
 		return $this->builder()->countAllResults($reset, $test);

@@ -33,7 +33,7 @@
  * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
- * @since      Version 3.0.0
+ * @since      Version 4.0.0
  * @filesource
  */
 
@@ -399,7 +399,7 @@ class CURLRequest extends Request
 	 *
 	 * @return string
 	 */
-	public function getMethod($upper = false): string
+	public function getMethod(bool $upper = false): string
 	{
 		return ($upper) ? strtoupper($this->method) : strtolower($this->method);
 	}
@@ -514,9 +514,9 @@ class CURLRequest extends Request
 	 * @param string $method
 	 * @param array  $curl_options
 	 *
-	 * @return array|integer
+	 * @return array
 	 */
-	protected function applyMethod($method, array $curl_options): array
+	protected function applyMethod(string $method, array $curl_options): array
 	{
 		$method = strtoupper($method);
 
@@ -538,7 +538,7 @@ class CURLRequest extends Request
 			// See http://tools.ietf.org/html/rfc7230#section-3.3.2
 			if (is_null($this->getHeader('content-length')))
 			{
-				$this->setHeader('Content-Length', 0);
+				$this->setHeader('Content-Length', '0');
 			}
 		}
 		else if ($method === 'HEAD')
@@ -675,7 +675,7 @@ class CURLRequest extends Request
 		if (isset($config['debug']))
 		{
 			$curl_options[CURLOPT_VERBOSE] = $config['debug'] === true ? 1 : 0;
-			$curl_options[CURLOPT_STDERR]  = is_bool($config['debug']) ? fopen('php://output', 'w+') : $config['debug'];
+			$curl_options[CURLOPT_STDERR]  = $config['debug'] === true ? fopen('php://output', 'w+') : $config['debug'];
 		}
 
 		// Decode Content

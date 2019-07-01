@@ -80,7 +80,7 @@ class Routes extends BaseCollector
 	public function display(): array
 	{
 		$rawRoutes = Services::routes(true);
-		$router    = Services::router(null, true);
+		$router    = Services::router(null, null, true);
 
 		/*
 		 * Matched Route
@@ -97,7 +97,7 @@ class Routes extends BaseCollector
 			$params[] = [
 				'name'  => $param->getName(),
 				'value' => $router->params()[$key] ??
-				'&lt;empty&gt;&nbsp| default: ' . var_export($param->getDefaultValue(), true),
+					'&lt;empty&gt;&nbsp| default: ' . var_export($param->isDefaultValueAvailable() ? $param->getDefaultValue() : null, true),
 			];
 		}
 
